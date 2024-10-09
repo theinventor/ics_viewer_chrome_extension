@@ -2,27 +2,36 @@ function parseICS(icsContent) {
     const events = [];
     const lines = icsContent.split('\n');
     let currentEvent = null;
-  
-    for (const line of lines) {
-      if (line.startsWith('BEGIN:VEVENT')) {
-        currentEvent = {};
-      } else if (line.startsWith('END:VEVENT')) {
-        if (currentEvent) {
-          events.push(currentEvent);
-          currentEvent = null;
-        }
-      } else if (currentEvent) {
-        const [key, value] = line.split(':');
-        if (key && value) {
-          currentEvent[key.trim()] = value.trim();
-        }
-      }
+
+    function unescapeICSValue(value) {
+        return value
+            .replace(/\\,/g, ',')
+            .replace(/\\;/g, ';')
+            .replace(/\\[nN]/g, '\n')
+            .replace(/\\\\/g, '\\');
     }
-  
+
+    for (const line of lines) {
+        if (line.startsWith('BEGIN:VEVENT')) {
+            currentEvent = {};
+        } else if (line.startsWith('END:VEVENT')) {
+            if (currentEvent) {
+                events.push(currentEvent);
+                currentEvent = null;
+            }
+        } else if (currentEvent) {
+            const [key, ...valueParts] = line.split(':');
+            if (key && valueParts.length > 0) {
+                const value = valueParts.join(':').trim();
+                currentEvent[key.trim()] = unescapeICSValue(value);
+            }
+        }
+    }
+
     return events;
-  }
-  
-  function createEventCard(event) {
+}
+
+function createEventCard(event) {
     const card = document.createElement('div');
     const now = new Date();
     const startDate = new Date(event.DTSTART.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6'));
@@ -49,17 +58,25 @@ function parseICS(icsContent) {
     timeInfo.textContent = `${startDate.toLocaleTimeString()} - ${endDate.toLocaleTimeString()}`;
     card.appendChild(timeInfo);
   
+    // Add event summary
+    if (event.SUMMARY) {
+      const summary = document.createElement('p');
+      summary.className = 'text-sm text-gray-700 mt-2';
+      summary.textContent = event.SUMMARY;
+      card.appendChild(summary);
+    }
+
     return card;
-  }
-  
-  function injectStyles() {
+}
+
+function injectStyles() {
     const link = document.createElement('link');
     link.href = 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css';
     link.rel = 'stylesheet';
     document.head.appendChild(link);
-  }
-  
-  function displayEvents(events) {
+}
+
+function displayEvents(events) {
     const container = document.createElement('div');
     container.className = 'max-w-2xl mx-auto p-4';
   
@@ -81,18 +98,18 @@ function parseICS(icsContent) {
   
     document.body.innerHTML = '';
     document.body.appendChild(container);
-  }
-  
-  function init() {
+}
+
+function init() {
     const preElements = document.getElementsByTagName('pre');
     for (const pre of preElements) {
-      if (pre.textContent.includes('BEGIN:VCALENDAR') && pre.textContent.includes('END:VCALENDAR')) {
-        const events = parseICS(pre.textContent);
-        injectStyles();
-        displayEvents(events);
-        break;
-      }
+        if (pre.textContent.includes('BEGIN:VCALENDAR') && pre.textContent.includes('END:VCALENDAR')) {
+            const events = parseICS(pre.textContent);
+            injectStyles();
+            displayEvents(events);
+            break;
+        }
     }
-  }
-  
-  init();
+}
+
+init();
