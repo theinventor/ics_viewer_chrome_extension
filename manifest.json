@@ -1,0 +1,14 @@
+{
+    "manifest_version": 3,
+    "name": "ICS Parser",
+    "version": "1.0",
+    "description": "Parses ICS content and displays it as pretty cards",
+    "permissions": ["activeTab"],
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"],
+        "css": ["styles.css"]
+      }
+    ]
+  }
